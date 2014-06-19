@@ -15,6 +15,8 @@ opencv2/contrib/contrib.hpp
 /home/robotics/Desktop/OpenCV_Set/opencv2/contrib/contrib.hpp
 opencv2/nonfree/nonfree.hpp
 /home/robotics/Desktop/OpenCV_Set/opencv2/nonfree/nonfree.hpp
+boost/unordered_map.hpp
+-
 iostream
 -
 fstream

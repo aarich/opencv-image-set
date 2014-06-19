@@ -112,21 +112,6 @@ matching_to_many_images: /opt/ros/hydro/lib/libopencv_superres.so
 matching_to_many_images: /opt/ros/hydro/lib/libopencv_video.so
 matching_to_many_images: /opt/ros/hydro/lib/libopencv_videostab.so
 matching_to_many_images: /opt/ros/hydro/lib/libcv_bridge.so
-matching_to_many_images: /opt/ros/hydro/lib/libopencv_features2d.so
-matching_to_many_images: /opt/ros/hydro/lib/libopencv_flann.so
-matching_to_many_images: /opt/ros/hydro/lib/libopencv_gpu.so
-matching_to_many_images: /opt/ros/hydro/lib/libopencv_highgui.so
-matching_to_many_images: /opt/ros/hydro/lib/libopencv_imgproc.so
-matching_to_many_images: /opt/ros/hydro/lib/libopencv_legacy.so
-matching_to_many_images: /opt/ros/hydro/lib/libopencv_ml.so
-matching_to_many_images: /opt/ros/hydro/lib/libopencv_nonfree.so
-matching_to_many_images: /opt/ros/hydro/lib/libopencv_objdetect.so
-matching_to_many_images: /opt/ros/hydro/lib/libopencv_photo.so
-matching_to_many_images: /opt/ros/hydro/lib/libopencv_stitching.so
-matching_to_many_images: /opt/ros/hydro/lib/libopencv_superres.so
-matching_to_many_images: /opt/ros/hydro/lib/libopencv_video.so
-matching_to_many_images: /opt/ros/hydro/lib/libopencv_videostab.so
-matching_to_many_images: /opt/ros/hydro/lib/libcv_bridge.so
 matching_to_many_images: CMakeFiles/matching_to_many_images.dir/build.make
 matching_to_many_images: CMakeFiles/matching_to_many_images.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --red --bold "Linking CXX executable matching_to_many_images"
