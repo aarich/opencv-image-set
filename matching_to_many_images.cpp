@@ -2,7 +2,11 @@
 #include "opencv2/features2d/features2d.hpp"
 #include "opencv2/contrib/contrib.hpp"
 #include "opencv2/nonfree/nonfree.hpp"
-//#include <features2d.h>
+#include "opencv2/core/core.hpp"
+#include "opencv2/calib3d/calib3d.hpp"
+
+
+
 #include <iostream>
 #include <fstream>
 
@@ -37,15 +41,129 @@ static void printPrompt( const string& applName )
          << defaultQueryImageName << " " << defaultFileWithTrainImages << " " << defaultDirToSaveResImages << endl;
 }
 
-static void maskMatchesByTrainImgIdx( const vector<DMatch>& matches, int trainImgIdx, vector<char>& mask )
+static void displayTransform( const Mat& queryImage, const Mat& trainImage, 
+                        const vector<Point2f> obj, const vector<Point2f> scene, const string& resultDir, const string& name)
+{
+
+    Mat H = findHomography( obj, scene, CV_RANSAC );
+
+    // Mat transformedImage;//(queryImage.size(), queryImage.type());
+
+    // perspectiveTransform(queryImage, transformedImage, H);
+
+    //-- Get the corners from the image_1 ( the object to be "detected" )
+    std::vector<Point2f> obj_corners(4);
+    obj_corners[0] = cvPoint(0,0); obj_corners[1] = cvPoint( queryImage.cols, 0 );
+    obj_corners[2] = cvPoint( queryImage.cols, queryImage.rows ); obj_corners[3] = cvPoint( 0, queryImage.rows );
+    std::vector<Point2f> scene_corners(4);
+
+    perspectiveTransform( obj_corners, scene_corners, H);
+
+    Size sz1 = queryImage.size();
+    Size sz2 = trainImage.size();
+    Mat im3(sz2.height, sz1.width+sz2.width, CV_8UC3);
+    Mat left(im3, Rect(0, 0, sz1.width, sz1.height));
+    queryImage.copyTo(left);
+    Mat right(im3, Rect(sz1.width, 0, sz2.width, sz2.height));
+    trainImage.copyTo(right);
+
+    // cout << name << ":" << endl;
+    // cout << obj_corners << endl;
+    // cout << scene_corners << endl;
+    // cout << scene_corners[0] + Point2f( queryImage.cols, 0) << "\t" << scene_corners[1] + Point2f( queryImage.cols, 0) << endl;
+    // cout << scene_corners[1] + Point2f( queryImage.cols, 0) << "\t" << scene_corners[2] + Point2f( queryImage.cols, 0) << endl;
+    // cout << scene_corners[2] + Point2f( queryImage.cols, 0) << "\t" << scene_corners[3] + Point2f( queryImage.cols, 0) << endl;
+    // cout << scene_corners[3] + Point2f( queryImage.cols, 0) << "\t" << scene_corners[0] + Point2f( queryImage.cols, 0) << endl;
+
+
+    //-- Draw lines between the corners (the mapped object in the scene - image_2 )
+    line( im3, scene_corners[0] + Point2f( queryImage.cols, 0), scene_corners[1] + Point2f( queryImage.cols, 0), Scalar( 0, 255, 0), 7 );
+    line( im3, scene_corners[1] + Point2f( queryImage.cols, 0), scene_corners[2] + Point2f( queryImage.cols, 0), Scalar( 0, 255, 0), 7 );
+    line( im3, scene_corners[2] + Point2f( queryImage.cols, 0), scene_corners[3] + Point2f( queryImage.cols, 0), Scalar( 0, 255, 0), 7 );
+    line( im3, scene_corners[3] + Point2f( queryImage.cols, 0), scene_corners[0] + Point2f( queryImage.cols, 0), Scalar( 0, 255, 0), 7 );
+
+    string filename = resultDir + "transformed_" + name;
+    imwrite(filename, im3);
+}
+
+struct kp {
+    float dist;
+    int index;
+    Point2f matchingp;
+    kp(){};
+    kp(float distance, int ind, Point2f p){
+        dist = distance;
+        index = ind;
+        matchingp = p;
+    }
+};
+
+class compare_1 { // simple comparison function
+   public:
+      bool operator()(const Point2f& a,const Point2f& b) const { return (a.x- b.x)>0; } // returns x>y
+};
+
+static void maskMatchesByTrainImgIdx( const vector<DMatch>& matches, int trainImgIdx, vector<char>& mask,
+                    vector<KeyPoint> queryKeypoints, vector<vector<KeyPoint> > trainKeypoints, const Mat& queryImage, 
+                    const Mat& trainImage, const string& resultDir, const string& name )
 {
     mask.resize( matches.size() );
     fill( mask.begin(), mask.end(), 0 );
+
+    vector<KeyPoint> trains = trainKeypoints.at(trainImgIdx);
+
+    map<Point2f, kp, compare_1> trainmap;
+    map<Point2f, kp, compare_1> querymap;
+
     for( size_t i = 0; i < matches.size(); i++ )
     {
         if( matches[i].imgIdx == trainImgIdx )
-            mask[i] = 1;
+        {
+            Point2f trainp = trains[matches[i].trainIdx].pt;
+            Point2f queryp = queryKeypoints[matches[i].queryIdx].pt;
+            if (trainmap.count(trainp) != 0)
+            {
+                kp current(trainmap[trainp]);
+                if (current.dist > matches[i].distance)
+                {
+                    mask[current.index] = 0;
+                    trainmap[trainp] = kp(matches[i].distance, i, queryp);
+                    mask[i] = 1;
+                }
+            }
+            else 
+            {
+                trainmap[trainp] = kp(matches[i].distance, i, queryp);
+                mask[i]= 1;
+            }
+            if (querymap.count(queryp) !=0)
+            {
+                kp c(querymap[queryp]);
+                if (c.dist > matches[i].distance)
+                {
+                    mask[c.index] = 0;
+                    querymap[queryp] = kp(matches[i].distance, i, trainp);
+                    mask[i] = 1;
+                }
+            }
+            else
+            {
+                querymap[queryp] = kp(matches[i].distance, i, trainp);
+                mask[i]=1;
+            }
+        }
     }
+
+    vector<Point2f> obj;
+    vector<Point2f> scene;
+
+    for (map<Point2f, kp>::iterator i = trainmap.begin(); i != trainmap.end(); ++i)
+    {
+        scene.push_back(i->first);
+        obj.push_back((i->second).matchingp);
+    }
+
+    displayTransform(queryImage, trainImage, obj, scene, resultDir, name);
 }
 
 static void readTrainFilenames( const string& filename, string& dirName, vector<string>& trainFilenames )
@@ -82,7 +200,7 @@ static bool createDetectorDescriptorMatcher( const string& detectorType, const s
     cout << "< Creating feature detector, descriptor extractor and descriptor matcher ..." << endl;
     // Threshold nonmaxsuppresion type
     featureDetector = new DynamicAdaptedFeatureDetector(cv::AdjusterAdapter::create("FAST"), 3500, 3550, 100);
-//    featureDetector = FeatureDetector::create( detectorType );
+    featureDetector = FeatureDetector::create( detectorType );
     descriptorExtractor = DescriptorExtractor::create( descriptorType );
     descriptorMatcher = DescriptorMatcher::create( matcherType );
     cout << ">" << endl;
@@ -195,12 +313,12 @@ static void saveResultImages( const Mat& queryImage, const vector<KeyPoint>& que
     {
         if( !trainImages[i].empty() )
         {
-            maskMatchesByTrainImgIdx( matches, (int)i, mask );
+            maskMatchesByTrainImgIdx( matches, (int)i, mask, queryKeypoints, trainKeypoints, queryImage, trainImages[i], resultDir, trainImagesNames[i]);
             drawMatches( queryImage, queryKeypoints, trainImages[i], trainKeypoints[i],
                          matches, drawImg, Scalar(255, 0, 0), Scalar(0, 255, 255), mask );
             string filename = resultDir + "/res_" + trainImagesNames[i];
             if( !imwrite( filename, drawImg ) )
-                cout << "Image " << filename << " can not be saved (may be because directory " << resultDir << " does not exist)." << endl;
+                cout << "Image " << filename << " can not be saved (maybe because directory " << resultDir << " does not exist)." << endl;
         }
     }
     cout << ">" << endl;

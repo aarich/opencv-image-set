@@ -3,6 +3,7 @@
 
 CMakeFiles/matching_to_many_images.dir/matching_to_many_images.cpp.o
  /home/robotics/Desktop/OpenCV_Set/matching_to_many_images.cpp
+ /opt/ros/hydro/include/opencv2/calib3d/calib3d.hpp
  /opt/ros/hydro/include/opencv2/contrib/contrib.hpp
  /opt/ros/hydro/include/opencv2/contrib/openfabmap.hpp
  /opt/ros/hydro/include/opencv2/contrib/retina.hpp
