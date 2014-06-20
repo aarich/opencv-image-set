@@ -47,10 +47,6 @@ static void displayTransform( const Mat& queryImage, const Mat& trainImage,
 
     Mat H = findHomography( obj, scene, CV_RANSAC );
 
-    // Mat transformedImage;//(queryImage.size(), queryImage.type());
-
-    // perspectiveTransform(queryImage, transformedImage, H);
-
     //-- Get the corners from the image_1 ( the object to be "detected" )
     std::vector<Point2f> obj_corners(4);
     obj_corners[0] = cvPoint(0,0); obj_corners[1] = cvPoint( queryImage.cols, 0 );
@@ -199,7 +195,7 @@ static bool createDetectorDescriptorMatcher( const string& detectorType, const s
 {
     cout << "< Creating feature detector, descriptor extractor and descriptor matcher ..." << endl;
     // Threshold nonmaxsuppresion type
-    featureDetector = new DynamicAdaptedFeatureDetector(cv::AdjusterAdapter::create("FAST"), 3500, 3550, 100);
+    // featureDetector = new DynamicAdaptedFeatureDetector(cv::AdjusterAdapter::create("FAST"), 3500, 3550, 100);
     featureDetector = FeatureDetector::create( detectorType );
     descriptorExtractor = DescriptorExtractor::create( descriptorType );
     descriptorMatcher = DescriptorMatcher::create( matcherType );

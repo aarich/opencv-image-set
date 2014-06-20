@@ -1,6 +1,3 @@
-photo.JPG
 photo(2).JPG
 photo(4).JPG
-photo(5).JPG
-photo(6).JPG
-photo(7).JPG
+
